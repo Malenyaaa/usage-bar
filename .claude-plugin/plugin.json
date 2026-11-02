@@ -1,0 +1,7 @@
+{
+  "name": "usage-bar",
+  "version": "0.1.0",
+  "description": "Shows in the status line how much of your Claude Code 5-hour and weekly limits is used",
+  "author": { "name": "Malenya" },
+  "license": "MIT"
+}
