@@ -8,6 +8,7 @@ type Texts = {
   hours: string
   minutes: string
   full: string
+  lasts: string
   context: string
   noReading: string
 }
@@ -21,6 +22,7 @@ const TEXTS: Record<'en' | 'de', Texts> = {
     hours: 'h',
     minutes: 'm',
     full: 'full at this pace',
+    lasts: 'lasts until reset at this pace',
     context: 'Context',
     noReading: 'Limits: no reading yet (arrives with the first response)',
   },
@@ -32,6 +34,7 @@ const TEXTS: Record<'en' | 'de', Texts> = {
     hours: ' Std',
     minutes: ' min',
     full: 'bei dem Tempo voll',
+    lasts: 'reicht bei dem Tempo bis zum Reset',
     context: 'Kontext',
     noReading: 'Kontingent: noch keine Angabe (kommt mit der ersten Antwort)',
   },
@@ -41,6 +44,8 @@ const TEXTS: Record<'en' | 'de', Texts> = {
 const PACE_WINDOW_MS = 30 * 60_000
 /** A forecast needs at least this much history, so one jump doesn't extrapolate wildly. */
 const PACE_MIN_SPAN_MS = 5 * 60_000
+/** Below this the window is far from full, so the forecast would only add noise. */
+const FORECAST_FROM = 50
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const clock = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -91,7 +96,7 @@ function record(limits: SessionRateLimit[], now: number): void {
   }
 }
 
-/** When the window fills at the pace of the last half hour, if before it resets. */
+/** Whether the window lasts until it resets at the pace of the last half hour, or when it fills. */
 function forecast(t: Texts, l: SessionRateLimit, now: number): string {
   if (l.kind !== 'five_hour') return ''
   const tr = tracks.get(l.kind)
@@ -99,21 +104,27 @@ function forecast(t: Texts, l: SessionRateLimit, now: number): string {
   tr.samples = tr.samples.filter(s => now - s.at <= PACE_WINDOW_MS)
   const first = tr.samples[0]
   if (!first || now - first.at < PACE_MIN_SPAN_MS) return ''
+  if (l.percentUsed < FORECAST_FROM || l.percentUsed >= 100) return ''
   const rise = l.percentUsed - first.percent
-  if (rise <= 0 || l.percentUsed >= 100) return ''
+  if (rise <= 0) return ` · ${t.lasts}`
   const fullAt = now + ((100 - l.percentUsed) * (now - first.at)) / rise
   const resetAt = parse(l.resetsAt)
-  if (resetAt !== undefined && fullAt >= resetAt) return ''
+  if (resetAt !== undefined && fullAt >= resetAt) return ` · ${t.lasts}`
   return ` · ${t.full} ${clock(new Date(fullAt))}`
 }
 
+/**
+ * The 5-hour window first, then the week and the context.
+ */
 function line(t: Texts, limits: SessionRateLimit[], context: SessionContextUsage, now: number): string {
-  const parts = limits.map(l =>
-    `${t.labels[l.kind] ?? l.kind} ${bar(l.percentUsed)} ${l.percentUsed}%${resets(t, l, now)}${forecast(t, l, now)}`,
-  )
-  if (parts.length === 0) parts.push(t.noReading)
-  if (context.percent !== undefined) parts.push(`${t.context} ${context.percent}%`)
-  return parts.join('   |   ')
+  const part = (l: SessionRateLimit) =>
+    `${(t.labels[l.kind] ?? l.kind)} ${bar(l.percentUsed)} ${l.percentUsed}%${resets(t, l, now)}${forecast(t, l, now)}`
+  const first = limits.filter(l => l.kind === 'five_hour').map(part)
+  const rest = limits.filter(l => l.kind !== 'five_hour').map(part)
+  if (limits.length === 0) rest.push(t.noReading)
+  if (context.percent !== undefined) rest.push(`${t.context} ${context.percent}%`)
+  // The status line draws a line break as nothing, so everything stays on one line.
+  return [...first, ...rest].join('   |   ')
 }
 
 export const register: Register = (on, options) => {

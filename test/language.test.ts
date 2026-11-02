@@ -59,26 +59,37 @@ test('countdown under an hour shows minutes only', async ($, on) => {
   expect(m.text()).toBe('5h █████░░░░░ 50% · resets in 25m')
 })
 
+/** A session that starts with the 5-hour window at `percentUsed`. */
+const startAt = (percentUsed: number) => ({ startedAt: 0, ...five(percentUsed) })
+
 test('fast pace forecasts when the window fills', { options: { language: 'de' } }, async ($, on) => {
+  const m = engine(on, startAt(55))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  m.at(NOON + 10 * MIN)
+  await $.session.measure(five(65)) // 10 points in 10 min: 35 left -> 35 min
+  expect(m.text()).toBe('5 Std ███████░░░ 65% · neu in 2 Std 20 min · bei dem Tempo voll 12:45')
+})
+
+test('slow pace says it lasts', async ($, on) => {
+  const m = engine(on, startAt(55))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  m.at(NOON + 20 * MIN)
+  await $.session.measure(five(57)) // 2 points in 20 min: full long after reset
+  expect(m.text()).toBe('5h ██████░░░░ 57% · resets in 2h 10m · lasts until reset at this pace')
+})
+
+test('no forecast below 50%', async ($, on) => {
   const m = engine(on)
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   m.at(NOON + 10 * MIN)
-  await $.session.measure(five(33)) // 10 points in 10 min: 67 left -> 67 min
-  expect(m.text()).toBe('5 Std ███░░░░░░░ 33% · neu in 2 Std 20 min · bei dem Tempo voll 13:17')
-})
-
-test('slow pace shows no forecast', async ($, on) => {
-  const m = engine(on)
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  m.at(NOON + 20 * MIN)
-  await $.session.measure(five(25)) // 2 points in 20 min: full long after reset
-  expect(m.text()).toBe('5h ███░░░░░░░ 25% · resets in 2h 10m')
+  await $.session.measure(five(33))
+  expect(m.text()).toBe('5h ███░░░░░░░ 33% · resets in 2h 20m')
 })
 
 test('no forecast from too short a history', async ($, on) => {
-  const m = engine(on)
+  const m = engine(on, startAt(55))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   m.at(NOON + 2 * MIN)
-  await $.session.measure(five(30))
-  expect(m.text()).toBe('5h ███░░░░░░░ 30% · resets in 2h 28m')
+  await $.session.measure(five(60))
+  expect(m.text()).toBe('5h ██████░░░░ 60% · resets in 2h 28m')
 })
