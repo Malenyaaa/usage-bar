@@ -1,6 +1,6 @@
 {
   "name": "usage-bar",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shows in the status line how much of your Claude Code 5-hour and weekly limits is used (English or German)",
   "author": { "name": "Malenya" },
   "license": "MIT",
