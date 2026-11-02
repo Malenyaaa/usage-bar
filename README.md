@@ -10,6 +10,10 @@ The figures come from Claude Code itself: every API response carries the account
 
 Limits only appear on a Claude subscription; with an API key the line shows the context alone.
 
+## Language
+
+The line comes in English (default) or German. You pick it while installing, and can change it later under `/config` (usage-bar → Language / Sprache): `en` or `de`.
+
 ## Install
 
 At the prompt of a terminal session:
@@ -25,6 +29,26 @@ claude plugin install usage-bar --marketplace Malenyaaa/usage-bar
 ```
 
 In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `Malenyaaa/usage-bar`, then Add plugin.
+
+---
+
+## Deutsch
+
+Eine kleine Erweiterung für Claude Code. Sie zeigt unter der Eingabe in einer Zeile, wie viel vom 5-Stunden- und vom Wochenkontingent verbraucht ist, wann es zurückgesetzt wird und wie voll das Kontextfenster ist:
+
+```
+5 Std ██░░░░░░░░ 23% · neu 14:30   |   Woche ████░░░░░░ 41% · neu Mo 09:00   |   Kontext 37%
+```
+
+Die Zahlen liefert Claude Code selbst mit jeder Antwort, dieselben wie bei `/usage`. Die Erweiterung zählt nichts selbst, sie bringt die Werte nur in Form. Direkt nach dem Start einer Sitzung gibt es noch keine Werte, die kommen mit der ersten Antwort. Kontingente gibt es nur mit einem Claude-Abo, mit einem API-Schlüssel erscheint nur der Kontext.
+
+**Sprache:** Beim Installieren `de` wählen, oder später unter `/config` (usage-bar → Language / Sprache) umstellen.
+
+**Installieren:** in Claude Code eingeben
+
+```
+/plugin install usage-bar --marketplace Malenyaaa/usage-bar
+```
 
 ## License
 
